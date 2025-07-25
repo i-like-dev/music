@@ -3,20 +3,19 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>YouTube Playlist 播放器（隱藏影片）</title>
+<title>受保護的YouTube播放清單播放器</title>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <style>
   body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: sans-serif;
     background: #121212;
-    color: #eee;
+    color: #fff;
+    text-align: center;
     padding: 20px;
     max-width: 600px;
     margin: auto;
   }
-  h1 {
-    text-align: center;
-    margin-bottom: 1rem;
-  }
+  h1 { font-size: 2rem; margin-bottom: 1rem; }
   #player {
     width: 0;
     height: 0;
@@ -33,47 +32,48 @@
     border-radius: 8px;
   }
   #playlist li {
-    padding: 10px 15px;
+    margin: 8px 0;
     cursor: pointer;
+    padding: 10px 15px;
     border-bottom: 1px solid #222;
+    transition: background-color 0.3s ease;
   }
   #playlist li.active {
-    background: #00bcd4;
+    background: #00f0ff;
     color: #000;
     font-weight: bold;
   }
   .controls {
-    text-align: center;
     margin-bottom: 1rem;
   }
   .controls button {
-    background: #00bcd4;
+    background: #222;
     border: none;
-    color: #000;
-    padding: 10px 15px;
+    color: #fff;
+    padding: 10px 20px;
     margin: 0 8px;
-    border-radius: 6px;
-    font-weight: bold;
+    border-radius: 8px;
     cursor: pointer;
+    font-weight: bold;
   }
   label {
-    display: inline-block;
-    margin-right: 8px;
+    margin-left: 15px;
+    vertical-align: middle;
   }
   input[type=range] {
     vertical-align: middle;
     width: 150px;
+    margin-left: 8px;
   }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
 
-<h1>YouTube 播放清單播放器（隱藏影片）</h1>
+<h1>YouTube 播放清單播放器（受密碼保護）</h1>
 
-<ul id="playlist">載入中...</ul>
+<ul id="playlist" style="display:none;">載入中...</ul>
 
-<div class="controls">
+<div class="controls" style="display:none;">
   <button id="prevBtn">上一首</button>
   <button id="playPauseBtn">播放</button>
   <button id="nextBtn">下一首</button>
@@ -94,13 +94,12 @@
   const prevBtn = document.getElementById('prevBtn');
   const nextBtn = document.getElementById('nextBtn');
 
-  // 你的 YouTube 播放清單ID
-  const PLAYLIST_ID = 'PL9tY0BWXOZFtrv_7QTTv3zp8g5Q1KEEyA'; // 請改成你自己的播放清單ID
+  // 你自己的播放清單ID
+  const PLAYLIST_ID = 'PL4Ty6N3yT5CLyiCIDeHaDqNUgFEXWr9oW'; // 改成你的播放清單ID
 
-  // 請填入你的 YouTube Data API Key
-  const API_KEY = 'AIzaSyDvtH4xw6YTdnfS9jZ2P0MrwX_1UrG_GV8';
+  // 你的 YouTube Data API Key
+  const API_KEY = 'AIzaSyAcViF7zlpVqJH20M1RucGmt7RoIb_isuA';
 
-  // 先用 API 抓播放清單的影片清單和標題
   async function fetchPlaylistVideos(playlistId) {
     let videos = [];
     let nextPageToken = '';
@@ -120,7 +119,6 @@
     }));
   }
 
-  // 初始化 YouTube Player API
   function onYouTubeIframeAPIReady() {
     player = new YT.Player('player', {
       height: '0',
@@ -221,21 +219,49 @@
   let videos = [];
 
   async function start() {
-    videos = await fetchPlaylistVideos(PLAYLIST_ID);
-    if(videos.length === 0) {
-      playlistElement.innerHTML = '<li>播放清單讀取失敗</li>';
-      return;
-    }
-    // YouTube Iframe API 載入會呼叫 onYouTubeIframeAPIReady
-  }
+    // 顯示密碼輸入畫面，阻止未授權觀看
+    Swal.fire({
+      title: '請輸入密碼',
+      input: 'password',
+      inputPlaceholder: '請輸入密碼',
+      inputAttributes: { autocapitalize: 'off', autocorrect: 'off' },
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      confirmButtonText: '確認',
+    }).then(async result => {
+      if (result.isConfirmed && result.value === '0910') {
+        Swal.fire('歡迎！', '', 'success');
 
-  // 載入 YouTube Iframe API
-  let tag = document.createElement('script');
-  tag.src = "https://www.youtube.com/iframe_api";
-  document.head.appendChild(tag);
+        // 顯示播放清單與控制器
+        playlistElement.style.display = 'block';
+        document.querySelector('.controls').style.display = 'block';
 
-  window.onYouTubeIframeAPIReady = function() {
-    onYouTubeIframeAPIReady();
+        // 取得最新播放清單
+        videos = await fetchPlaylistVideos(PLAYLIST_ID);
+        if(videos.length === 0) {
+          playlistElement.innerHTML = '<li>播放清單讀取失敗</li>';
+          return;
+        }
+
+        // 載入 YT Iframe API
+        if (typeof YT === 'undefined' || typeof YT.Player === 'undefined') {
+          let tag = document.createElement('script');
+          tag.src = "https://www.youtube.com/iframe_api";
+          document.head.appendChild(tag);
+          window.onYouTubeIframeAPIReady = function() {
+            onYouTubeIframeAPIReady();
+          }
+        } else {
+          onYouTubeIframeAPIReady();
+        }
+
+      } else {
+        Swal.fire('密碼錯誤，無法進入', '', 'error').then(() => {
+          // 可換成關閉頁面或重導向空白頁
+          document.body.innerHTML = '<h2>密碼錯誤，請重新整理頁面</h2>';
+        });
+      }
+    });
   }
 
   start();
