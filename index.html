@@ -328,7 +328,6 @@
 
   function onPlayerReady(event) {
     player.setVolume(volumeRange.value);
-    updateProgress();
   }
 
   function onPlayerStateChange(event) {
@@ -379,6 +378,8 @@
   });
 
   // 播放進度控制
+  let isSeeking = false;
+
   progress.addEventListener('input', () => {
     if (player && player.getDuration) {
       const duration = player.getDuration();
@@ -387,8 +388,17 @@
     }
   });
 
-  function updateProgress() {
-    if (!player || !player.getDuration) return;
+  progress.addEventListener('mousedown', () => {
+    isSeeking = true;
+  });
+
+  progress.addEventListener('mouseup', () => {
+    isSeeking = false;
+  });
+
+  // 用 setInterval 定時更新播放進度與時間顯示
+  setInterval(() => {
+    if (!player || !player.getDuration || isSeeking) return;
     const duration = player.getDuration();
     if (duration === 0) {
       currentTimeDisplay.textContent = '00:00:00 / 00:00:00';
@@ -398,8 +408,7 @@
     const currentTime = player.getCurrentTime();
     currentTimeDisplay.textContent = `${formatTime(currentTime)} / ${formatTime(duration)}`;
     progress.value = (currentTime / duration) * 100;
-    requestAnimationFrame(updateProgress);
-  }
+  }, 1000);
 
   function formatTime(seconds) {
     seconds = Math.floor(seconds);
@@ -446,7 +455,7 @@
     }
   });
 
-  // 更新現在時間
+  // 更新現在時間顯示
   function updateTime() {
     const now = new Date();
     const hh = String(now.getHours()).padStart(2, '0');
@@ -458,6 +467,7 @@
   updateTime();
 
 </script>
+
 <script src="https://www.youtube.com/iframe_api"></script>
 </body>
 </html>
