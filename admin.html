@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>後台管理</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>🔐 登入後台</h1>
+    <button onclick="login()">登入</button>
+    <div id="adminPanel" style="display:none;">
+      <h2>🎶 播放清單管理</h2>
+      <textarea id="jsonData" rows="10" style="width:100%"></textarea>
+      <button onclick="save()">💾 儲存</button>
+    </div>
+  </div>
+  <script src="admin.js"></script>
+</body>
+</html>
