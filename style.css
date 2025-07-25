@@ -1,52 +1,45 @@
 body {
-  font-family: sans-serif;
+  font-family: "Segoe UI", sans-serif;
+  background: #f5f5f5;
+  margin: 0;
+  padding: 2rem;
+}
+
+.container {
+  max-width: 960px;
+  margin: auto;
+}
+
+h1, h2 {
   text-align: center;
-  background: #f9f9f9;
   color: #333;
 }
 
-.center {
-  margin-top: 100px;
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
 }
 
-input {
-  padding: 8px;
-  margin: 5px;
-  font-size: 1rem;
-}
-
-button {
-  padding: 10px 20px;
-  font-size: 1rem;
-  background-color: #5c67f2;
-  color: white;
-  border: none;
-  border-radius: 5px;
+.card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  padding: 1rem;
   cursor: pointer;
+  transition: transform 0.2s;
 }
 
-button:hover {
-  background-color: #4e56c1;
+.card:hover {
+  transform: translateY(-4px);
 }
 
-.hidden {
-  display: none;
+.player {
+  text-align: center;
 }
 
-#playlist {
-  margin-top: 30px;
-}
-
-.song {
-  cursor: pointer;
-  margin: 5px;
-  padding: 10px;
-  border: 1px solid #ddd;
-  background: #fff;
-  display: inline-block;
-  border-radius: 5px;
-}
-
-.song:hover {
-  background: #eee;
+#volume {
+  width: 100%;
+  margin-top: 1rem;
 }
