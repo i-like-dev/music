@@ -31,7 +31,6 @@
     font-size: 1.1rem;
   }
   #idleTime {
-    font-weight: 900;
     font-size: 5rem;
     display: none;
     user-select: none;
@@ -148,6 +147,8 @@
     font-size: 0.95rem;
     color: #444;
     user-select: none;
+    display: none;
+    position: relative;
   }
   #autoPauseContainer input[type=number] {
     width: 50px;
@@ -157,6 +158,29 @@
     border-radius: 6px;
     border: 1px solid #ccc;
     text-align: center;
+  }
+  #autoPauseContainer button {
+    position: absolute;
+    right: 0;
+    top: 0;
+    padding: 6px 12px;
+    font-size: 1rem;
+    border-radius: 8px;
+    border: none;
+    background-color: #0088ff;
+    color: white;
+    cursor: pointer;
+    user-select: none;
+    box-shadow: 0 3px 8px rgba(0, 136, 255, 0.7);
+  }
+  #autoPauseContainer button:hover {
+    background-color: #006fcc;
+  }
+  #gearBtn {
+    font-size: 1.8rem;
+    cursor: pointer;
+    user-select: none;
+    margin-bottom: 15px;
   }
 </style>
 </head>
@@ -184,11 +208,15 @@
   <input type="range" id="progress" min="0" max="100" value="0" />
 </div>
 
+<div id="gearBtn" title="設定自動暫停時間">⚙️</div>
+
 <div id="autoPauseContainer">
-  ⏸️ 自動暫停時間： 
+  ⏸️ 自動暫停時間：
   <input type="number" id="autoPauseHour" min="0" max="23" value="0" /> 小時
   <input type="number" id="autoPauseMinute" min="0" max="59" value="0" /> 分鐘
   <input type="number" id="autoPauseSecond" min="0" max="59" value="0" /> 秒
+  <button id="confirmAutoPauseBtn">確認</button>
+  <span id="countdownDisplay" style="margin-left:15px; font-weight:bold; user-select:none;"></span>
 </div>
 
 <div id="player"></div>
@@ -202,6 +230,7 @@
   let isPlaying = false;
   let autoPauseSeconds = 0;
   let autoPauseTimer = null;
+  let countdownInterval = null;
 
   const playlistElement = document.getElementById('playlist');
   const playPauseBtn = document.getElementById('playPauseBtn');
@@ -213,9 +242,13 @@
   const progress = document.getElementById('progress');
   const fullscreenBtn = document.getElementById('fullscreenBtn');
 
+  const gearBtn = document.getElementById('gearBtn');
+  const autoPauseContainer = document.getElementById('autoPauseContainer');
   const autoPauseHour = document.getElementById('autoPauseHour');
   const autoPauseMinute = document.getElementById('autoPauseMinute');
   const autoPauseSecond = document.getElementById('autoPauseSecond');
+  const confirmAutoPauseBtn = document.getElementById('confirmAutoPauseBtn');
+  const countdownDisplay = document.getElementById('countdownDisplay');
 
   let videos = [];
 
@@ -246,6 +279,8 @@
 
     // 顯示大字時間
     idleTimeElement.style.display = 'block';
+    idleTimeElement.style.background = 'transparent'; // 本體已透過body背景設定，不需再背景色
+    idleTimeElement.style.color = '#000';
   }
 
   function exitIdleMode() {
@@ -394,7 +429,7 @@
     isSeeking = false;
   });
 
-  // 只更新進度條，不顯示時間
+  // 用 setInterval 定時更新播放進度
   setInterval(() => {
     if (!player || !player.getDuration || isSeeking) return;
     const duration = player.getDuration();
@@ -417,14 +452,31 @@
   function startAutoPauseTimer() {
     clearAutoPauseTimer();
     autoPauseSeconds = getAutoPauseSeconds();
-    if (autoPauseSeconds <= 0) return;
+    if (autoPauseSeconds <= 0) {
+      countdownDisplay.textContent = '';
+      return;
+    }
+
+    let remaining = autoPauseSeconds;
+    countdownDisplay.textContent = formatCountdown(remaining);
 
     autoPauseTimer = setTimeout(() => {
       if (player && isPlaying) {
         player.pauseVideo();
-        // 不用 alert，靜默暫停
       }
+      countdownDisplay.textContent = '';
     }, autoPauseSeconds * 1000);
+
+    clearInterval(countdownInterval);
+    countdownInterval = setInterval(() => {
+      remaining--;
+      if (remaining < 0) {
+        clearInterval(countdownInterval);
+        countdownDisplay.textContent = '';
+        return;
+      }
+      countdownDisplay.textContent = formatCountdown(remaining);
+    }, 1000);
   }
 
   function clearAutoPauseTimer() {
@@ -432,7 +484,34 @@
       clearTimeout(autoPauseTimer);
       autoPauseTimer = null;
     }
+    if (countdownInterval) {
+      clearInterval(countdownInterval);
+      countdownInterval = null;
+    }
+    countdownDisplay.textContent = '';
   }
+
+  function formatCountdown(seconds) {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    return `倒數 ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  }
+
+  // 齒輪按鈕切換設定區塊顯示
+  gearBtn.addEventListener('click', () => {
+    if (autoPauseContainer.style.display === 'none' || autoPauseContainer.style.display === '') {
+      autoPauseContainer.style.display = 'block';
+    } else {
+      autoPauseContainer.style.display = 'none';
+      clearAutoPauseTimer();
+    }
+  });
+
+  confirmAutoPauseBtn.addEventListener('click', () => {
+    startAutoPauseTimer();
+    autoPauseContainer.style.display = 'none';
+  });
 
   // 全螢幕按鈕
   fullscreenBtn.addEventListener('click', () => {
