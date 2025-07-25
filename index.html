@@ -1,271 +1,259 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>受保護的YouTube播放清單播放器</title>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<style>
-  body {
-    font-family: sans-serif;
-    background: #121212;
-    color: #fff;
-    text-align: center;
-    padding: 20px;
-    max-width: 600px;
-    margin: auto;
-  }
-  h1 { font-size: 2rem; margin-bottom: 1rem; }
-  #player {
-    width: 0;
-    height: 0;
-    position: absolute;
-    left: -9999px; /* 隱藏影片 */
-  }
-  #playlist {
-    list-style: none;
-    padding: 0;
-    max-height: 320px;
-    overflow-y: auto;
-    margin-bottom: 1rem;
-    border: 1px solid #333;
-    border-radius: 8px;
-  }
-  #playlist li {
-    margin: 8px 0;
-    cursor: pointer;
-    padding: 10px 15px;
-    border-bottom: 1px solid #222;
-    transition: background-color 0.3s ease;
-  }
-  #playlist li.active {
-    background: #00f0ff;
-    color: #000;
-    font-weight: bold;
-  }
-  .controls {
-    margin-bottom: 1rem;
-  }
-  .controls button {
-    background: #222;
-    border: none;
-    color: #fff;
-    padding: 10px 20px;
-    margin: 0 8px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: bold;
-  }
-  label {
-    margin-left: 15px;
-    vertical-align: middle;
-  }
-  input[type=range] {
-    vertical-align: middle;
-    width: 150px;
-    margin-left: 8px;
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>YouTube 播放清單播放器（隱藏影片）</title>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #121212;
+      color: #fff;
+      text-align: center;
+      padding: 20px;
+      max-width: 600px;
+      margin: auto;
+    }
+    h1 { font-size: 2rem; margin-bottom: 1rem; }
+    #player {
+      width: 0;
+      height: 0;
+      position: absolute;
+      left: -9999px; /* 隱藏影片 */
+    }
+    #playlist {
+      list-style: none;
+      padding: 0;
+      max-height: 320px;
+      overflow-y: auto;
+      margin-bottom: 1rem;
+      border: 1px solid #333;
+      border-radius: 8px;
+    }
+    #playlist li {
+      margin: 8px 0;
+      cursor: pointer;
+      padding: 10px 15px;
+      border-bottom: 1px solid #222;
+      transition: background-color 0.3s ease;
+      user-select: none;
+    }
+    #playlist li.active {
+      background: #00f0ff;
+      color: #000;
+      font-weight: bold;
+    }
+    .controls {
+      margin-bottom: 1rem;
+    }
+    .controls button {
+      background: #222;
+      border: none;
+      color: #fff;
+      padding: 10px 20px;
+      margin: 0 8px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      user-select: none;
+    }
+    label {
+      margin-left: 15px;
+      vertical-align: middle;
+      user-select: none;
+    }
+    input[type=range] {
+      vertical-align: middle;
+      width: 150px;
+      margin-left: 8px;
+    }
+  </style>
 </head>
 <body>
 
-<h1>YouTube 播放清單播放器（受密碼保護）</h1>
+  <h1>YouTube 播放清單播放器（隱藏影片）</h1>
 
-<ul id="playlist" style="display:none;">載入中...</ul>
+  <ul id="playlist">載入中...</ul>
 
-<div class="controls" style="display:none;">
-  <button id="prevBtn">上一首</button>
-  <button id="playPauseBtn">播放</button>
-  <button id="nextBtn">下一首</button>
-  <label for="volumeRange">音量</label>
-  <input type="range" id="volumeRange" min="0" max="100" value="50" />
-</div>
+  <div class="controls">
+    <button id="prevBtn">上一首</button>
+    <button id="playPauseBtn">播放</button>
+    <button id="nextBtn">下一首</button>
+    <label for="volumeRange">音量</label>
+    <input type="range" id="volumeRange" min="0" max="100" value="50" />
+  </div>
 
-<!-- 隱藏影片iframe -->
-<div id="player"></div>
+  <!-- 隱藏影片iframe -->
+  <div id="player"></div>
 
-<script>
-  let player;
-  let currentIndex = 0;
-  let isPlaying = false;
-  const playlistElement = document.getElementById('playlist');
-  const playPauseBtn = document.getElementById('playPauseBtn');
-  const volumeRange = document.getElementById('volumeRange');
-  const prevBtn = document.getElementById('prevBtn');
-  const nextBtn = document.getElementById('nextBtn');
+  <script>
+    // YouTube播放清單ID，請改成你自己的
+    const PLAYLIST_ID = 'PL4Ty6N3yT5CLyiCIDeHaDqNUgFEXWr9oW';
 
-  // 你自己的播放清單ID
-  const PLAYLIST_ID = 'PL4Ty6N3yT5CLyiCIDeHaDqNUgFEXWr9oW'; // 改成你的播放清單ID
+    // YouTube Data API Key，請改成你的API Key
+    const API_KEY = 'AIzaSyAcViF7zlpVqJH20M1RucGmt7RoIb_isuA';
 
-  // 你的 YouTube Data API Key
-  const API_KEY = 'AIzaSyAcViF7zlpVqJH20M1RucGmt7RoIb_isuA';
+    let player;
+    let currentIndex = 0;
+    let isPlaying = false;
+    const playlistElement = document.getElementById('playlist');
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    const volumeRange = document.getElementById('volumeRange');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
 
-  async function fetchPlaylistVideos(playlistId) {
     let videos = [];
-    let nextPageToken = '';
-    do {
-      const res = await fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=${playlistId}&key=${API_KEY}&pageToken=${nextPageToken}`);
-      const data = await res.json();
-      if (data.error) {
-        alert('取得播放清單錯誤: ' + data.error.message);
-        return [];
-      }
-      videos.push(...data.items);
-      nextPageToken = data.nextPageToken || '';
-    } while (nextPageToken);
-    return videos.map(item => ({
-      videoId: item.snippet.resourceId.videoId,
-      title: item.snippet.title
-    }));
-  }
 
-  function onYouTubeIframeAPIReady() {
-    player = new YT.Player('player', {
-      height: '0',
-      width: '0',
-      playerVars: {
-        'playsinline': 1,
-        'controls': 0,
-        'disablekb': 1,
-        'modestbranding': 1,
-        'rel': 0
-      },
-      events: {
-        'onReady': onPlayerReady,
-        'onStateChange': onPlayerStateChange
-      }
-    });
-  }
-
-  function onPlayerReady(event) {
-    player.setVolume(volumeRange.value);
-    renderPlaylist();
-    loadVideo(currentIndex);
-  }
-
-  function onPlayerStateChange(event) {
-    if(event.data === YT.PlayerState.ENDED) {
-      next();
+    // 取得播放清單影片資料
+    async function fetchPlaylistVideos(playlistId) {
+      let videos = [];
+      let nextPageToken = '';
+      do {
+        const res = await fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=${playlistId}&key=${API_KEY}&pageToken=${nextPageToken}`);
+        const data = await res.json();
+        if (data.error) {
+          alert('取得播放清單錯誤: ' + data.error.message);
+          return [];
+        }
+        videos.push(...data.items);
+        nextPageToken = data.nextPageToken || '';
+      } while (nextPageToken);
+      return videos.map(item => ({
+        videoId: item.snippet.resourceId.videoId,
+        title: item.snippet.title
+      }));
     }
-  }
 
-  function renderPlaylist() {
-    playlistElement.innerHTML = '';
-    videos.forEach((video, idx) => {
-      const li = document.createElement('li');
-      li.textContent = video.title;
-      li.dataset.index = idx;
-      if (idx === currentIndex) li.classList.add('active');
-      li.addEventListener('click', () => {
-        loadVideo(idx);
-        play();
+    // YouTube iframe API準備
+    function onYouTubeIframeAPIReady() {
+      player = new YT.Player('player', {
+        height: '0',
+        width: '0',
+        playerVars: {
+          playsinline: 1,
+          controls: 0,
+          disablekb: 1,
+          modestbranding: 1,
+          rel: 0,
+        },
+        events: {
+          onReady: onPlayerReady,
+          onStateChange: onPlayerStateChange
+        }
       });
-      playlistElement.appendChild(li);
-    });
-  }
+    }
 
-  function loadVideo(index) {
-    currentIndex = index;
-    const video = videos[index];
-    player.loadVideoById(video.videoId);
-    updateActiveItem();
-  }
+    // 播放器準備完畢
+    function onPlayerReady() {
+      player.setVolume(volumeRange.value);
+      renderPlaylist();
+      loadVideo(currentIndex);
+    }
 
-  function updateActiveItem() {
-    const lis = playlistElement.querySelectorAll('li');
-    lis.forEach(li => li.classList.remove('active'));
-    const currentLi = playlistElement.querySelector(`li[data-index="${currentIndex}"]`);
-    if (currentLi) currentLi.classList.add('active');
-  }
-
-  function play() {
-    player.playVideo();
-    isPlaying = true;
-    playPauseBtn.textContent = '暫停';
-  }
-
-  function pause() {
-    player.pauseVideo();
-    isPlaying = false;
-    playPauseBtn.textContent = '播放';
-  }
-
-  function togglePlayPause() {
-    if (!player) return;
-    if (isPlaying) pause();
-    else play();
-  }
-
-  function next() {
-    currentIndex = (currentIndex + 1) % videos.length;
-    loadVideo(currentIndex);
-    play();
-  }
-
-  function prev() {
-    currentIndex = (currentIndex - 1 + videos.length) % videos.length;
-    loadVideo(currentIndex);
-    play();
-  }
-
-  volumeRange.addEventListener('input', () => {
-    if(player) player.setVolume(volumeRange.value);
-  });
-
-  playPauseBtn.addEventListener('click', togglePlayPause);
-  nextBtn.addEventListener('click', next);
-  prevBtn.addEventListener('click', prev);
-
-  let videos = [];
-
-  async function start() {
-    // 顯示密碼輸入畫面，阻止未授權觀看
-    Swal.fire({
-      title: '請輸入密碼',
-      input: 'password',
-      inputPlaceholder: '請輸入密碼',
-      inputAttributes: { autocapitalize: 'off', autocorrect: 'off' },
-      allowOutsideClick: false,
-      allowEscapeKey: false,
-      confirmButtonText: '確認',
-    }).then(async result => {
-      if (result.isConfirmed && result.value === '0910') {
-        Swal.fire('歡迎！', '', 'success');
-
-        // 顯示播放清單與控制器
-        playlistElement.style.display = 'block';
-        document.querySelector('.controls').style.display = 'block';
-
-        // 取得最新播放清單
-        videos = await fetchPlaylistVideos(PLAYLIST_ID);
-        if(videos.length === 0) {
-          playlistElement.innerHTML = '<li>播放清單讀取失敗</li>';
-          return;
-        }
-
-        // 載入 YT Iframe API
-        if (typeof YT === 'undefined' || typeof YT.Player === 'undefined') {
-          let tag = document.createElement('script');
-          tag.src = "https://www.youtube.com/iframe_api";
-          document.head.appendChild(tag);
-          window.onYouTubeIframeAPIReady = function() {
-            onYouTubeIframeAPIReady();
-          }
-        } else {
-          onYouTubeIframeAPIReady();
-        }
-
-      } else {
-        Swal.fire('密碼錯誤，無法進入', '', 'error').then(() => {
-          // 可換成關閉頁面或重導向空白頁
-          document.body.innerHTML = '<h2>密碼錯誤，請重新整理頁面</h2>';
-        });
+    // 監聽影片狀態（自動下一首）
+    function onPlayerStateChange(event) {
+      if(event.data === YT.PlayerState.ENDED) {
+        next();
       }
-    });
-  }
+    }
 
-  start();
-</script>
+    // 顯示播放清單
+    function renderPlaylist() {
+      playlistElement.innerHTML = '';
+      videos.forEach((video, idx) => {
+        const li = document.createElement('li');
+        li.textContent = video.title;
+        li.dataset.index = idx;
+        if (idx === currentIndex) li.classList.add('active');
+        li.addEventListener('click', () => {
+          loadVideo(idx);
+          play();
+        });
+        playlistElement.appendChild(li);
+      });
+    }
+
+    // 載入影片
+    function loadVideo(index) {
+      currentIndex = index;
+      const video = videos[index];
+      player.loadVideoById(video.videoId);
+      updateActiveItem();
+    }
+
+    // 更新播放清單選中樣式
+    function updateActiveItem() {
+      const lis = playlistElement.querySelectorAll('li');
+      lis.forEach(li => li.classList.remove('active'));
+      const currentLi = playlistElement.querySelector(`li[data-index="${currentIndex}"]`);
+      if (currentLi) currentLi.classList.add('active');
+    }
+
+    // 播放
+    function play() {
+      player.playVideo();
+      isPlaying = true;
+      playPauseBtn.textContent = '暫停';
+    }
+
+    // 暫停
+    function pause() {
+      player.pauseVideo();
+      isPlaying = false;
+      playPauseBtn.textContent = '播放';
+    }
+
+    // 切換播放狀態
+    function togglePlayPause() {
+      if (!player) return;
+      if (isPlaying) pause();
+      else play();
+    }
+
+    // 下一首
+    function next() {
+      currentIndex = (currentIndex + 1) % videos.length;
+      loadVideo(currentIndex);
+      play();
+    }
+
+    // 上一首
+    function prev() {
+      currentIndex = (currentIndex - 1 + videos.length) % videos.length;
+      loadVideo(currentIndex);
+      play();
+    }
+
+    // 音量調整
+    volumeRange.addEventListener('input', () => {
+      if(player) player.setVolume(volumeRange.value);
+    });
+
+    playPauseBtn.addEventListener('click', togglePlayPause);
+    nextBtn.addEventListener('click', next);
+    prevBtn.addEventListener('click', prev);
+
+    async function start() {
+      videos = await fetchPlaylistVideos(PLAYLIST_ID);
+      if(videos.length === 0) {
+        playlistElement.innerHTML = '<li>播放清單讀取失敗</li>';
+        return;
+      }
+
+      // 載入 YouTube Iframe API
+      if (typeof YT === 'undefined' || typeof YT.Player === 'undefined') {
+        let tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        document.head.appendChild(tag);
+        window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
+      } else {
+        onYouTubeIframeAPIReady();
+      }
+    }
+
+    start();
+  </script>
 
 </body>
 </html>
