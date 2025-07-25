@@ -241,19 +241,24 @@
   }
 
   function enterIdleMode() {
-    isIdle = true;
-    document.body.style.backgroundColor = 'rgba(255,255,255,0.8)';
-    document.body.style.color = '#000';
-    playlistElement.style.display = 'none';
-    document.querySelector('.controls').style.display = 'none';
-    progress.style.display = 'none';
-    timeElement.style.display = 'none';
-    currentTimeDisplay.style.display = 'none';
+  isIdle = true;
+  // 全頁白底透明度80%
+  document.body.style.backgroundColor = 'rgba(255,255,255,0.8)';
+  document.body.style.color = '#000';
 
-    idleTimeElement.style.display = 'block';
-    idleTimeElement.style.background = 'rgba(255, 255, 255, 0.8)';
-    idleTimeElement.style.color = '#000';
-  }
+  // 隱藏其他元素
+  playlistElement.style.display = 'none';
+  document.querySelector('.controls').style.display = 'none';
+  progress.style.display = 'none';
+  timeElement.style.display = 'none';
+  currentTimeDisplay.style.display = 'none';
+
+  // 顯示大字時間
+  idleTimeElement.style.display = 'block';
+  idleTimeElement.style.background = 'transparent'; // 本體已透過body背景設定，不需再背景色
+  idleTimeElement.style.color = '#000';
+}
+
 
   function exitIdleMode() {
     isIdle = false;
