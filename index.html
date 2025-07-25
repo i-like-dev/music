@@ -196,6 +196,7 @@
   <input type="number" id="autoPauseHour" min="0" max="23" value="0" /> 小時
   <input type="number" id="autoPauseMinute" min="0" max="59" value="0" /> 分鐘
   <input type="number" id="autoPauseSecond" min="0" max="59" value="0" /> 秒
+  <button id="autoPause10sBtn" style="margin-left:10px; padding:4px 8px; cursor:pointer;">設定10秒自動暫停</button>
 </div>
 
 <div id="player"></div>
@@ -241,24 +242,23 @@
   }
 
   function enterIdleMode() {
-  isIdle = true;
-  // 全頁白底透明度80%
-  document.body.style.backgroundColor = 'rgba(255,255,255,0.8)';
-  document.body.style.color = '#000';
+    isIdle = true;
+    // 全頁白底透明度80%
+    document.body.style.backgroundColor = 'rgba(255,255,255,0.8)';
+    document.body.style.color = '#000';
 
-  // 隱藏其他元素
-  playlistElement.style.display = 'none';
-  document.querySelector('.controls').style.display = 'none';
-  progress.style.display = 'none';
-  timeElement.style.display = 'none';
-  currentTimeDisplay.style.display = 'none';
+    // 隱藏其他元素
+    playlistElement.style.display = 'none';
+    document.querySelector('.controls').style.display = 'none';
+    progress.style.display = 'none';
+    timeElement.style.display = 'none';
+    currentTimeDisplay.style.display = 'none';
 
-  // 顯示大字時間
-  idleTimeElement.style.display = 'block';
-  idleTimeElement.style.background = 'transparent'; // 本體已透過body背景設定，不需再背景色
-  idleTimeElement.style.color = '#000';
-}
-
+    // 顯示大字時間
+    idleTimeElement.style.display = 'block';
+    idleTimeElement.style.background = 'transparent'; // 本體已透過body背景設定，不需再背景色
+    idleTimeElement.style.color = '#000';
+  }
 
   function exitIdleMode() {
     isIdle = false;
@@ -440,7 +440,10 @@
   function startAutoPauseTimer() {
     clearAutoPauseTimer();
     autoPauseSeconds = getAutoPauseSeconds();
-    if (autoPauseSeconds <= 0) return;
+
+    if (autoPauseSeconds <= 0) {
+      return;
+    }
 
     autoPauseTimer = setTimeout(() => {
       if (player && isPlaying) {
@@ -481,6 +484,15 @@
   setInterval(() => {
     loadPlaylist();
   }, 300000);
+
+  // 測試用快速設定自動暫停10秒
+  document.getElementById('autoPause10sBtn').addEventListener('click', () => {
+    autoPauseHour.value = 0;
+    autoPauseMinute.value = 0;
+    autoPauseSecond.value = 10;
+    alert('自動暫停時間設為10秒');
+    if (isPlaying) startAutoPauseTimer();
+  });
 
 </script>
 
