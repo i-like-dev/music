@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>🎵 播放器 Player 🎶</title>
+<title>🎵 音樂播放器 🎶</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC&display=swap" rel="stylesheet" />
 <style>
   body {
@@ -147,15 +147,29 @@
     font-size: 0.95rem;
     color: #444;
     user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
   }
   #autoPauseContainer input[type=number] {
     width: 50px;
     padding: 4px;
-    margin-left: 5px;
-    margin-right: 10px;
     border-radius: 6px;
     border: 1px solid #ccc;
     text-align: center;
+  }
+  #autoPauseContainer button {
+    background: none;
+    border: none;
+    font-size: 1.6rem;
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.3s ease;
+    padding: 0 6px;
+  }
+  #autoPauseContainer button:hover {
+    color: #0088ff;
   }
   #currentTimeDisplay {
     font-weight: 400;
@@ -168,7 +182,7 @@
 </head>
 <body>
 
-<h1>🎵 播放器 Player 🎶</h1>
+<h1>🎵 音樂播放器 🎶</h1>
 <div id="time">⌚ 現在時間：--:--:--</div>
 <div id="idleTime"></div>
 
@@ -192,10 +206,11 @@
 </div>
 
 <div id="autoPauseContainer">
-  ⏸️ 自動暫停時間： 
+  ⏸️ 自動暫停時間：
   <input type="number" id="autoPauseHour" min="0" max="23" value="0" /> 小時
   <input type="number" id="autoPauseMinute" min="0" max="59" value="0" /> 分鐘
   <input type="number" id="autoPauseSecond" min="0" max="59" value="0" /> 秒
+  <button id="startAutoPauseBtn" title="開始倒數">⚙️</button>
 </div>
 
 <div id="player"></div>
@@ -207,8 +222,8 @@
   let player;
   let currentIndex = 0;
   let isPlaying = false;
-  let autoPauseSeconds = 0;
   let autoPauseTimer = null;
+  let countdownInterval = null;
 
   const playlistElement = document.getElementById('playlist');
   const playPauseBtn = document.getElementById('playPauseBtn');
@@ -224,6 +239,7 @@
   const autoPauseHour = document.getElementById('autoPauseHour');
   const autoPauseMinute = document.getElementById('autoPauseMinute');
   const autoPauseSecond = document.getElementById('autoPauseSecond');
+  const startAutoPauseBtn = document.getElementById('startAutoPauseBtn');
 
   let videos = [];
 
@@ -242,20 +258,17 @@
 
   function enterIdleMode() {
     isIdle = true;
-    // 全頁白底透明度80%
     document.body.style.backgroundColor = 'rgba(255,255,255,0.8)';
     document.body.style.color = '#000';
 
-    // 隱藏其他元素
     playlistElement.style.display = 'none';
     document.querySelector('.controls').style.display = 'none';
     progress.style.display = 'none';
     timeElement.style.display = 'none';
     currentTimeDisplay.style.display = 'none';
 
-    // 顯示大字時間
     idleTimeElement.style.display = 'block';
-    idleTimeElement.style.background = 'transparent'; // 本體已透過body背景設定，不需再背景色
+    idleTimeElement.style.background = 'transparent';
     idleTimeElement.style.color = '#000';
   }
 
@@ -438,20 +451,33 @@
 
   function startAutoPauseTimer() {
     clearAutoPauseTimer();
-    autoPauseSeconds = getAutoPauseSeconds();
+    const totalSeconds = getAutoPauseSeconds();
 
-    if (autoPauseSeconds <= 0) {
+    if (totalSeconds <= 0) {
+      enableAutoPauseInputs(true);
       return;
     }
 
-    autoPauseTimer = setTimeout(() => {
-      if (player && isPlaying) {
-        player.pauseVideo();
-        // 移除 alert 改成只改按鈕文字
-        isPlaying = false;
-        playPauseBtn.textContent = '▶️ 播放';
+    let remaining = totalSeconds;
+    enableAutoPauseInputs(false);
+    updateAutoPauseInputs(remaining);
+
+    countdownInterval = setInterval(() => {
+      remaining--;
+      if (remaining <= 0) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+        if (player && isPlaying) {
+          player.pauseVideo();
+          isPlaying = false;
+          playPauseBtn.textContent = '▶️ 播放';
+        }
+        enableAutoPauseInputs(true);
+        resetAutoPauseInputs();
+      } else {
+        updateAutoPauseInputs(remaining);
       }
-    }, autoPauseSeconds * 1000);
+    }, 1000);
   }
 
   function clearAutoPauseTimer() {
@@ -459,7 +485,40 @@
       clearTimeout(autoPauseTimer);
       autoPauseTimer = null;
     }
+    if (countdownInterval) {
+      clearInterval(countdownInterval);
+      countdownInterval = null;
+    }
   }
+
+  function updateAutoPauseInputs(seconds) {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    autoPauseHour.value = h;
+    autoPauseMinute.value = m;
+    autoPauseSecond.value = s;
+  }
+
+  function resetAutoPauseInputs() {
+    autoPauseHour.value = 0;
+    autoPauseMinute.value = 0;
+    autoPauseSecond.value = 0;
+  }
+
+  function enableAutoPauseInputs(enable) {
+    autoPauseHour.disabled = !enable;
+    autoPauseMinute.disabled = !enable;
+    autoPauseSecond.disabled = !enable;
+    startAutoPauseBtn.disabled = !enable;
+    startAutoPauseBtn.style.color = enable ? '' : '#ccc';
+    startAutoPauseBtn.style.cursor = enable ? 'pointer' : 'default';
+  }
+
+  startAutoPauseBtn.addEventListener('click', () => {
+    clearAutoPauseTimer();
+    startAutoPauseTimer();
+  });
 
   // 全螢幕按鈕
   fullscreenBtn.addEventListener('click', () => {
