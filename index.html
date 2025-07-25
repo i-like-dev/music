@@ -34,6 +34,10 @@
     font-size: 5rem;
     display: none;
     user-select: none;
+    background: rgba(255, 255, 255, 0.8);
+    color: #000;
+    padding: 20px 0;
+    border-radius: 12px;
   }
   #player {
     width: 0;
@@ -238,8 +242,8 @@
 
   function enterIdleMode() {
     isIdle = true;
-    document.body.style.backgroundColor = '#222';
-    document.body.style.color = '#0ff';
+    document.body.style.backgroundColor = 'rgba(255,255,255,0.8)';
+    document.body.style.color = '#000';
     playlistElement.style.display = 'none';
     document.querySelector('.controls').style.display = 'none';
     progress.style.display = 'none';
@@ -247,6 +251,8 @@
     currentTimeDisplay.style.display = 'none';
 
     idleTimeElement.style.display = 'block';
+    idleTimeElement.style.background = 'rgba(255, 255, 255, 0.8)';
+    idleTimeElement.style.color = '#000';
   }
 
   function exitIdleMode() {
@@ -465,6 +471,11 @@
   }
   setInterval(updateTime, 1000);
   updateTime();
+
+  // 自動更新播放清單每5分鐘
+  setInterval(() => {
+    loadPlaylist();
+  }, 300000);
 
 </script>
 
