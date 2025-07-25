@@ -144,10 +144,11 @@
     color: #444;
     user-select: none;
   }
-  #autoPauseInput {
+  #autoPauseContainer input[type=number] {
     width: 50px;
     padding: 4px;
-    margin-left: 10px;
+    margin-left: 5px;
+    margin-right: 10px;
     border-radius: 6px;
     border: 1px solid #ccc;
     text-align: center;
@@ -187,8 +188,10 @@
 </div>
 
 <div id="autoPauseContainer">
-  ⏸️ 自動暫停秒數（0 不啟用）:
-  <input type="number" id="autoPauseInput" min="0" max="3600" value="0" /> 秒
+  ⏸️ 自動暫停時間： 
+  <input type="number" id="autoPauseHour" min="0" max="23" value="0" /> 小時
+  <input type="number" id="autoPauseMinute" min="0" max="59" value="0" /> 分鐘
+  <input type="number" id="autoPauseSecond" min="0" max="59" value="0" /> 秒
 </div>
 
 <div id="player"></div>
@@ -211,9 +214,12 @@
   const timeElement = document.getElementById('time');
   const idleTimeElement = document.getElementById('idleTime');
   const progress = document.getElementById('progress');
-  const autoPauseInput = document.getElementById('autoPauseInput');
   const currentTimeDisplay = document.getElementById('currentTimeDisplay');
   const fullscreenBtn = document.getElementById('fullscreenBtn');
+
+  const autoPauseHour = document.getElementById('autoPauseHour');
+  const autoPauseMinute = document.getElementById('autoPauseMinute');
+  const autoPauseSecond = document.getElementById('autoPauseSecond');
 
   let videos = [];
 
@@ -266,40 +272,53 @@
     const hh = String(now.getHours()).padStart(2, '0');
     const mm = String(now.getMinutes()).padStart(2, '0');
     const ss = String(now.getSeconds()).padStart(2, '0');
-    idleTimeElement.textContent = `${hh}:${mm}:${ss}`;
+    idleTimeElement.textContent = `🕒 ${hh}:${mm}:${ss}`;
   }
   setInterval(updateIdleTime, 1000);
 
-  async function fetchPlaylistVideos(playlistId) {
-    let videos = [];
-    let nextPageToken = '';
-    do {
-      const res = await fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=${playlistId}&key=${API_KEY}&pageToken=${nextPageToken}`);
-      const data = await res.json();
-      if (data.error) {
-        alert('取得播放清單錯誤: ' + data.error.message);
-        return [];
-      }
-      videos.push(...data.items);
-      nextPageToken = data.nextPageToken || '';
-    } while (nextPageToken);
-    return videos.map(item => ({
-      videoId: item.snippet.resourceId.videoId,
-      title: '🎶 ' + item.snippet.title
-    }));
+  // YouTube API Load
+  function onYouTubeIframeAPIReady() {
+    loadPlaylist();
   }
 
-  function onYouTubeIframeAPIReady() {
+  async function loadPlaylist() {
+    try {
+      const response = await fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=${PLAYLIST_ID}&key=${API_KEY}`);
+      const data = await response.json();
+      videos = data.items.map(item => ({
+        videoId: item.snippet.resourceId.videoId,
+        title: item.snippet.title
+      }));
+      renderPlaylist();
+      initPlayer();
+    } catch (e) {
+      playlistElement.innerHTML = `<li>載入播放清單失敗，請稍後再試</li>`;
+      console.error(e);
+    }
+  }
+
+  function renderPlaylist() {
+    playlistElement.innerHTML = '';
+    videos.forEach((v, i) => {
+      const li = document.createElement('li');
+      li.textContent = v.title;
+      li.classList.toggle('active', i === currentIndex);
+      li.addEventListener('click', () => {
+        playVideoAt(i);
+      });
+      playlistElement.appendChild(li);
+    });
+  }
+
+  function initPlayer() {
+    if (player) {
+      player.loadVideoById(videos[currentIndex].videoId);
+      return;
+    }
     player = new YT.Player('player', {
       height: '0',
       width: '0',
-      playerVars: {
-        playsinline: 1,
-        controls: 0,
-        disablekb: 1,
-        modestbranding: 1,
-        rel: 0
-      },
+      videoId: videos[currentIndex].videoId,
       events: {
         onReady: onPlayerReady,
         onStateChange: onPlayerStateChange
@@ -307,153 +326,128 @@
     });
   }
 
-  function onPlayerReady() {
+  function onPlayerReady(event) {
     player.setVolume(volumeRange.value);
-    renderPlaylist();
-    loadVideo(currentIndex);
     updateProgress();
   }
 
   function onPlayerStateChange(event) {
-    if (event.data === YT.PlayerState.ENDED) {
-      next();
+    if (event.data == YT.PlayerState.ENDED) {
+      nextVideo();
+    } else if (event.data == YT.PlayerState.PLAYING) {
+      isPlaying = true;
+      playPauseBtn.textContent = '⏸️ 暫停';
+      startAutoPauseTimer();
+    } else {
+      isPlaying = false;
+      playPauseBtn.textContent = '▶️ 播放';
+      clearAutoPauseTimer();
     }
-    resetAutoPauseTimer();
   }
 
-  function renderPlaylist() {
-    playlistElement.innerHTML = '';
-    videos.forEach((video, idx) => {
-      const li = document.createElement('li');
-      li.textContent = video.title;
-      li.dataset.index = idx;
-      if (idx === currentIndex) li.classList.add('active');
-      li.addEventListener('click', () => {
-        loadVideo(idx);
-        play();
-      });
-      playlistElement.appendChild(li);
-    });
-  }
-
-  function loadVideo(index) {
+  function playVideoAt(index) {
     currentIndex = index;
-    player.loadVideoById(videos[index].videoId);
-    updateActiveItem();
+    player.loadVideoById(videos[currentIndex].videoId);
+    renderPlaylist();
   }
 
-  function updateActiveItem() {
-    const lis = playlistElement.querySelectorAll('li');
-    lis.forEach(li => li.classList.remove('active'));
-    const currentLi = playlistElement.querySelector(`li[data-index="${currentIndex}"]`);
-    if (currentLi) currentLi.classList.add('active');
-  }
-
-  function play() {
-    player.playVideo();
-    isPlaying = true;
-    playPauseBtn.textContent = '⏸️ 暫停';
-    resetAutoPauseTimer();
-  }
-
-  function pause() {
-    player.pauseVideo();
-    isPlaying = false;
-    playPauseBtn.textContent = '▶️ 播放';
-    clearTimeout(autoPauseTimer);
-  }
-
-  function togglePlayPause() {
-    if (!player) return;
-    if (isPlaying) pause();
-    else play();
-  }
-
-  function next() {
-    currentIndex = (currentIndex + 1) % videos.length;
-    loadVideo(currentIndex);
-    play();
-  }
-
-  function prev() {
+  function prevVideo() {
     currentIndex = (currentIndex - 1 + videos.length) % videos.length;
-    loadVideo(currentIndex);
-    play();
+    playVideoAt(currentIndex);
   }
+
+  function nextVideo() {
+    currentIndex = (currentIndex + 1) % videos.length;
+    playVideoAt(currentIndex);
+  }
+
+  playPauseBtn.addEventListener('click', () => {
+    if (!player) return;
+    const state = player.getPlayerState();
+    if (state === YT.PlayerState.PLAYING) {
+      player.pauseVideo();
+    } else {
+      player.playVideo();
+    }
+  });
+
+  prevBtn.addEventListener('click', prevVideo);
+  nextBtn.addEventListener('click', nextVideo);
 
   volumeRange.addEventListener('input', () => {
     if (player) player.setVolume(volumeRange.value);
   });
 
-  playPauseBtn.addEventListener('click', togglePlayPause);
-  nextBtn.addEventListener('click', next);
-  prevBtn.addEventListener('click', prev);
-
-  // 進度條相關
-  function formatTimeHMS(seconds) {
-    if (isNaN(seconds)) return '00:00:00';
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = Math.floor(seconds % 60);
-    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  }
-
-  function updateProgress() {
-    if (!player || !isPlaying) return;
-    const currentTime = player.getCurrentTime();
-    const duration = player.getDuration();
-    if (duration) {
-      const percent = (currentTime / duration) * 100;
-      progress.value = percent;
-      currentTimeDisplay.textContent = `${formatTimeHMS(currentTime)} / ${formatTimeHMS(duration)}`;
-    }
-  }
-
-  // 拖曳跳轉影片
-  let isSeeking = false;
+  // 播放進度控制
   progress.addEventListener('input', () => {
-    isSeeking = true;
-    const duration = player.getDuration();
-    if (!duration) return;
-    const seekTo = (progress.value / 100) * duration;
-    currentTimeDisplay.textContent = `${formatTimeHMS(seekTo)} / ${formatTimeHMS(duration)}`;
-  });
-  progress.addEventListener('change', () => {
-    if (player) {
+    if (player && player.getDuration) {
       const duration = player.getDuration();
       const seekTo = (progress.value / 100) * duration;
       player.seekTo(seekTo, true);
     }
-    isSeeking = false;
   });
 
-  setInterval(() => {
-    if (!isSeeking) updateProgress();
-  }, 500);
+  function updateProgress() {
+    if (!player || !player.getDuration) return;
+    const duration = player.getDuration();
+    if (duration === 0) {
+      currentTimeDisplay.textContent = '00:00:00 / 00:00:00';
+      progress.value = 0;
+      return;
+    }
+    const currentTime = player.getCurrentTime();
+    currentTimeDisplay.textContent = `${formatTime(currentTime)} / ${formatTime(duration)}`;
+    progress.value = (currentTime / duration) * 100;
+    requestAnimationFrame(updateProgress);
+  }
+
+  function formatTime(seconds) {
+    seconds = Math.floor(seconds);
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    return [h, m, s].map(v => String(v).padStart(2, '0')).join(':');
+  }
 
   // 自動暫停設定
-  autoPauseInput.addEventListener('input', () => {
-    const val = parseInt(autoPauseInput.value, 10);
-    if (isNaN(val) || val < 0) {
-      autoPauseSeconds = 0;
-    } else {
-      autoPauseSeconds = val;
-    }
-    resetAutoPauseTimer();
-  });
+  function getAutoPauseSeconds() {
+    const h = parseInt(autoPauseHour.value) || 0;
+    const m = parseInt(autoPauseMinute.value) || 0;
+    const s = parseInt(autoPauseSecond.value) || 0;
+    return h * 3600 + m * 60 + s;
+  }
 
-  function resetAutoPauseTimer() {
-    if (autoPauseTimer) clearTimeout(autoPauseTimer);
-    if (autoPauseSeconds > 0 && isPlaying) {
-      autoPauseTimer = setTimeout(() => {
-        pause();
-      }, autoPauseSeconds * 1000);
+  function startAutoPauseTimer() {
+    clearAutoPauseTimer();
+    autoPauseSeconds = getAutoPauseSeconds();
+    if (autoPauseSeconds <= 0) return;
+
+    autoPauseTimer = setTimeout(() => {
+      if (player && isPlaying) {
+        player.pauseVideo();
+        alert('⏸️ 自動暫停時間到！');
+      }
+    }, autoPauseSeconds * 1000);
+  }
+
+  function clearAutoPauseTimer() {
+    if (autoPauseTimer) {
+      clearTimeout(autoPauseTimer);
+      autoPauseTimer = null;
     }
   }
 
-  // 時間顯示
+  // 全螢幕按鈕
+  fullscreenBtn.addEventListener('click', () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+    } else if (document.exitFullscreen) {
+      document.exitFullscreen();
+    }
+  });
+
+  // 更新現在時間
   function updateTime() {
-    if (isIdle) return; // 待機模式時不更新正常時間
     const now = new Date();
     const hh = String(now.getHours()).padStart(2, '0');
     const mm = String(now.getMinutes()).padStart(2, '0');
@@ -463,35 +457,7 @@
   setInterval(updateTime, 1000);
   updateTime();
 
-  // 全螢幕功能
-  fullscreenBtn.addEventListener('click', () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch((err) => {
-        alert(`無法進入全螢幕: ${err.message}`);
-      });
-    } else {
-      document.exitFullscreen();
-    }
-  });
-
-  async function start() {
-    videos = await fetchPlaylistVideos(PLAYLIST_ID);
-    if (videos.length === 0) {
-      playlistElement.innerHTML = '<li>播放清單讀取失敗</li>';
-      return;
-    }
-    if (typeof YT === 'undefined' || typeof YT.Player === 'undefined') {
-      let tag = document.createElement('script');
-      tag.src = "https://www.youtube.com/iframe_api";
-      document.head.appendChild(tag);
-      window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
-    } else {
-      onYouTubeIframeAPIReady();
-    }
-  }
-
-  start();
 </script>
-
+<script src="https://www.youtube.com/iframe_api"></script>
 </body>
 </html>
