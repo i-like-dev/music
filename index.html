@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>🎵 整潔的音樂 🎶</title>
+<title>🎵 播放器 Player 🎶</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC&display=swap" rel="stylesheet" />
 <style>
   body {
@@ -168,7 +168,7 @@
 </head>
 <body>
 
-<h1>🎵 整潔音樂播放器 🎶</h1>
+<h1>🎵 播放器 Player 🎶</h1>
 <div id="time">⌚ 現在時間：--:--:--</div>
 <div id="idleTime"></div>
 
@@ -196,7 +196,6 @@
   <input type="number" id="autoPauseHour" min="0" max="23" value="0" /> 小時
   <input type="number" id="autoPauseMinute" min="0" max="59" value="0" /> 分鐘
   <input type="number" id="autoPauseSecond" min="0" max="59" value="0" /> 秒
-  <button id="autoPause10sBtn" style="margin-left:10px; padding:4px 8px; cursor:pointer;">設定10秒自動暫停</button>
 </div>
 
 <div id="player"></div>
@@ -448,7 +447,9 @@
     autoPauseTimer = setTimeout(() => {
       if (player && isPlaying) {
         player.pauseVideo();
-        alert('⏸️ 自動暫停時間到！');
+        // 移除 alert 改成只改按鈕文字
+        isPlaying = false;
+        playPauseBtn.textContent = '▶️ 播放';
       }
     }, autoPauseSeconds * 1000);
   }
@@ -484,15 +485,6 @@
   setInterval(() => {
     loadPlaylist();
   }, 300000);
-
-  // 測試用快速設定自動暫停10秒
-  document.getElementById('autoPause10sBtn').addEventListener('click', () => {
-    autoPauseHour.value = 0;
-    autoPauseMinute.value = 0;
-    autoPauseSecond.value = 10;
-    alert('自動暫停時間設為10秒');
-    if (isPlaying) startAutoPauseTimer();
-  });
 
 </script>
 
