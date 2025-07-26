@@ -1,108 +1,921 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-  <meta charset="UTF-8" />
-  <title>YouTube 播放計時器</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f0f0f0;
-      text-align: center;
-      padding: 20px;
-    }
-    input {
-      padding: 10px;
-      font-size: 16px;
-      width: 300px;
-    }
-    button {
-      padding: 10px 20px;
-      font-size: 16px;
-      margin-left: 10px;
-      cursor: pointer;
-    }
-    #player, #controls {
-      margin-top: 20px;
-    }
-    #timer {
-      font-size: 20px;
-      margin-top: 10px;
-    }
-  </style>
+  <link rel="icon" href="/favicon.ico" type="image/x-icon"/>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎵 優雅音樂播放器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            color: rgba(0, 0, 0, 0.8);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .current-time {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
+
+        .player-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 25px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+            backdrop-filter: blur(15px);
+        }
+
+        .now-playing {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .song-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: rgba(0, 0, 0, 0.9);
+        }
+
+        .song-artist {
+            font-size: 16px;
+            color: rgba(0, 0, 0, 0.6);
+        }
+
+        .progress-container {
+            margin: 25px 0;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 3px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .progress {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            border-radius: 3px;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .time-display {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            font-size: 14px;
+            color: rgba(0, 0, 0, 0.6);
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin: 25px 0;
+        }
+
+        .control-btn {
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 20px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        .control-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .play-btn {
+            width: 60px;
+            height: 60px;
+            font-size: 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .volume-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .volume-slider {
+            width: 150px;
+            height: 4px;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 2px;
+            outline: none;
+            cursor: pointer;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .volume-slider::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .auto-pause {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 15px;
+            margin: 20px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        .auto-pause input {
+            padding: 5px;
+            border: 1px solid rgba(0, 0, 0, 0.2);
+            border-radius: 5px;
+            width: 60px;
+            text-align: center;
+        }
+
+        .playlist {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .song-card {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .song-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .song-card.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .card-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+
+        .card-duration {
+            font-size: 14px;
+            opacity: 0.7;
+        }
+
+        .screensaver {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            color: white;
+        }
+
+        .screensaver-time {
+            font-size: 72px;
+            font-weight: 300;
+            margin-bottom: 20px;
+        }
+
+        .screensaver-song {
+            font-size: 24px;
+            opacity: 0.8;
+        }
+
+        .active-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: #28a745;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .loading-status {
+            text-align: center;
+            padding: 10px;
+            background: rgba(255, 193, 7, 0.1);
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: rgba(0, 0, 0, 0.7);
+        }
+    </style>
 </head>
 <body>
-  <h1>YouTube 播放計時器</h1>
-  <input id="videoIdInput" placeholder="輸入 YouTube 影片 ID 或網址">
-  <button id="playBtn">播放</button>
+    <div class="current-time" id="currentTime"></div>
+    
+    <!-- 隱藏的YouTube播放器 - 縮小至1px -->
+    <div id="youtube-player" style="position: absolute; top: -10000px; left: -10000px; width: 1px; height: 1px; opacity: 0; pointer-events: none; z-index: -9999;"></div>
+    
+    <div class="container">
+        <div class="header">
+            <h1>🎵 優雅音樂播放器</h1>
+            <p>您可在此播放我們的精選音樂🎵！</p>
+        </div>
 
-  <div id="player"></div>
-  <div id="controls" style="display:none;">
-    <div id="timer">0:00 / 0:00</div>
-  </div>
+        <div class="loading-status" id="loadingStatus">
+            🔄 正在載入播放清單和初始化播放器...
+        </div>
 
-  <script src="https://www.youtube.com/iframe_api"></script>
-  <script>
-    let player;
-    let duration = 0;
-    let timerInterval = null;
+        <div class="player-container">
+            <div class="now-playing">
+                <div class="song-title" id="currentSong">
+                    <span class="active-indicator"></span>
+                    選擇歌曲開始播放
+                </div>
+                <div class="song-artist" id="currentArtist">等待選擇</div>
+            </div>
 
-    function extractVideoId(input) {
-      const regex = /(?:v=|\/)([0-9A-Za-z_-]{11}).*/;
-      const match = input.match(regex);
-      return match ? match[1] : input;
-    }
+            <div class="progress-container">
+                <div class="progress-bar" id="progressBar">
+                    <div class="progress" id="progress"></div>
+                </div>
+                <div class="time-display">
+                    <span id="currentTimeDisplay">0:00</span>
+                    <span id="totalTimeDisplay">0:00</span>
+                </div>
+            </div>
 
-    function onYouTubeIframeAPIReady() {
-      player = new YT.Player('player', {
-        height: '360',
-        width: '640',
-        videoId: '',
-        events: {
-          'onReady': onPlayerReady
-        },
-        playerVars: {
-          controls: 1,
-          modestbranding: 1,
+            <div class="controls">
+                <button class="control-btn" id="shuffleBtn" title="隨機播放">🔀</button>
+                <button class="control-btn" id="prevBtn" title="上一曲">⏮️</button>
+                <button class="control-btn play-btn" id="playBtn" title="播放/暫停">▶️</button>
+                <button class="control-btn" id="nextBtn" title="下一曲">⏭️</button>
+                <button class="control-btn" id="repeatBtn" title="循環播放">🔁</button>
+            </div>
+
+            <div class="volume-container">
+                <span>🔊</span>
+                <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="45">
+                <span id="volumeDisplay">45%</span>
+            </div>
+
+            <div class="auto-pause">
+                <span>⏰ 自動暫停：</span>
+                <input type="number" id="pauseHours" min="0" max="23" value="0" placeholder="0">
+                <span>:</span>
+                <input type="number" id="pauseMinutes" min="0" max="59" value="0" placeholder="0">
+                <span>:</span>
+                <input type="number" id="pauseSeconds" min="0" max="59" value="0" placeholder="0">
+                <button class="control-btn" id="setPauseBtn" style="width: auto; padding: 0 15px; border-radius: 20px;">設定</button>
+                <div id="pauseCountdown" style="margin-left: 15px; font-size: 14px; color: rgba(0, 0, 0, 0.6);"></div>
+            </div>
+        </div>
+
+        <div class="playlist" id="playlist">
+            <!-- 播放清單將在這裡動態載入 -->
+        </div>
+    </div>
+
+    <div class="screensaver" id="screensaver">
+        <div class="screensaver-time" id="screensaverTime"></div>
+        <div class="screensaver-song" id="screensaverSong">🎵 目前播放中...</div>
+    </div>
+
+    <!-- YouTube Player API -->
+    <script src="https://www.youtube.com/iframe_api"></script>
+    
+    <script>
+        // YouTube Data API 設定
+        const API_KEY = 'AIzaSyAcViF7zlpVqJH20M1RucGmt7RoIb_isuA';
+        const PLAYLIST_ID = 'PL4Ty6N3yT5CLyiCIDeHaDqNUgFEXWr9oW';
+        
+        // YouTube Player 變數
+        let youtubePlayer;
+        
+        // 播放器狀態
+        let currentSongIndex = -1;
+        let isPlaying = false;
+        let isShuffled = false;
+        let isRepeating = false;
+        let playlist = [];
+        let currentTime = 0;
+        let duration = 0;
+        let volume = 70;
+        let autoPauseTime = null;
+        let autoPauseStartTime = null;
+        let pauseCountdownInterval = null;
+        let playerReady = false;
+        let progressInterval = null;
+        
+        // YouTube Player API 回調函數
+        function onYouTubeIframeAPIReady() {
+            console.log('YouTube API 已載入');
+            youtubePlayer = new YT.Player('youtube-player', {
+                height: '1',
+                width: '1',
+                playerVars: {
+                    'autoplay': 0,
+                    'controls': 0,
+                    'disablekb': 1,
+                    'fs': 0,
+                    'iv_load_policy': 3,
+                    'modestbranding': 1,
+                    'rel': 0,
+                    'showinfo': 0,
+                    'playsinline': 1
+                },
+                events: {
+                    'onReady': onPlayerReady,
+                    'onStateChange': onPlayerStateChange,
+                    'onError': onPlayerError
+                }
+            });
         }
-      });
-    }
-
-    function onPlayerReady(event) {
-      document.getElementById('playBtn').onclick = function () {
-        const input = document.getElementById('videoIdInput').value.trim();
-        const videoId = extractVideoId(input);
-
-        if (!videoId) return alert("請輸入有效的影片 ID 或網址");
-
-        player.loadVideoById(videoId);
-        clearInterval(timerInterval);
-        document.getElementById('controls').style.display = 'block';
-
-        // 等待 metadata 載入
-        setTimeout(() => {
-          duration = player.getDuration();
-          updateTime(); // 立即更新一次
-          timerInterval = setInterval(() => {
-            const current = player.getCurrentTime();
-            updateTime(current, duration);
-
-            if (current >= duration) {
-              clearInterval(timerInterval);
-              document.getElementById("videoIdInput").value = "";
+        
+        function onPlayerReady(event) {
+            playerReady = true;
+            youtubePlayer.setVolume(volume);
+            console.log('YouTube Player 已準備就緒');
+            document.getElementById('loadingStatus').textContent = '✅ 播放器已準備就緒！點擊歌曲開始播放';
+            
+            // 載入播放清單
+            loadPlaylist();
+        }
+        
+        function onPlayerStateChange(event) {
+            console.log('播放器狀態變更:', event.data);
+            
+            if (event.data == YT.PlayerState.ENDED) {
+                nextSong();
+            } else if (event.data == YT.PlayerState.PLAYING) {
+                isPlaying = true;
+                playBtn.textContent = '⏸️';
+                startProgressTracking();
+                
+                // 獲取實際時長
+                const actualDuration = youtubePlayer.getDuration();
+                if (actualDuration > 0) {
+                    duration = Math.floor(actualDuration);
+                    if (playlist[currentSongIndex]) {
+                        playlist[currentSongIndex].duration = duration;
+                    }
+                    updateProgress();
+                }
+                
+                // 開始播放時啟動自動暫停計時
+                if (autoPauseTime && !autoPauseStartTime) {
+                    autoPauseStartTime = Date.now();
+                    pauseCountdownInterval = setInterval(updatePauseCountdown, 1000);
+                }
+                
+            } else if (event.data == YT.PlayerState.PAUSED) {
+                isPlaying = false;
+                playBtn.textContent = '▶️';
+                stopProgressTracking();
+            } else if (event.data == YT.PlayerState.BUFFERING) {
+                console.log('正在緩衝...');
             }
-          }, 500);
-        }, 1000);
-      };
-    }
-
-    function updateTime(current = 0, total = 0) {
-      const formatTime = t => {
-        const min = Math.floor(t / 60);
-        const sec = Math.floor(t % 60).toString().padStart(2, '0');
-        return `${min}:${sec}`;
-      };
-      document.getElementById('timer').textContent = `${formatTime(current)} / ${formatTime(total)}`;
-    }
-  </script>
-</body>
+        }
+        
+        function onPlayerError(event) {
+            console.error('YouTube Player 錯誤:', event.data);
+            document.getElementById('loadingStatus').textContent = '❌ 播放器發生錯誤，請重新整理頁面';
+        }
+        
+        // 待機模式
+        let idleTimer;
+        let isScreensaver = false;
+        
+        // DOM 元素
+        const playBtn = document.getElementById('playBtn');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const shuffleBtn = document.getElementById('shuffleBtn');
+        const repeatBtn = document.getElementById('repeatBtn');
+        const progressBar = document.getElementById('progressBar');
+        const progress = document.getElementById('progress');
+        const currentTimeDisplay = document.getElementById('currentTimeDisplay');
+        const totalTimeDisplay = document.getElementById('totalTimeDisplay');
+        const currentSong = document.getElementById('currentSong');
+        const currentArtist = document.getElementById('currentArtist');
+        const volumeSlider = document.getElementById('volumeSlider');
+        const volumeDisplay = document.getElementById('volumeDisplay');
+        const playlistContainer = document.getElementById('playlist');
+        const screensaver = document.getElementById('screensaver');
+        const currentTimeEl = document.getElementById('currentTime');
+        
+        // 載入播放清單
+        async function loadPlaylist() {
+            try {
+                console.log('正在載入播放清單...');
+                document.getElementById('loadingStatus').textContent = '🔄 正在載入播放清單...';
+                
+                const response = await fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=${PLAYLIST_ID}&key=${API_KEY}`);
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error.message);
+                }
+                
+                if (data.items && data.items.length > 0) {
+                    playlist = data.items
+                        .filter(item => item.snippet && item.snippet.resourceId && 
+                               item.snippet.title !== 'Private video' && 
+                               item.snippet.title !== 'Deleted video')
+                        .map(item => ({
+                            id: item.snippet.resourceId.videoId,
+                            title: item.snippet.title,
+                            artist: item.snippet.videoOwnerChannelTitle || item.snippet.channelTitle || '未知藝術家',
+                            duration: 0
+                        }));
+                    
+                    console.log('播放清單載入成功，共', playlist.length, '首歌曲');
+                    document.getElementById('loadingStatus').textContent = `🔄 已載入 ${playlist.length} 首歌曲，正在獲取時長資訊...`;
+                    
+                    // 先渲染播放清單（顯示載入中狀態）
+                    renderPlaylist();
+                    
+                    // 載入每首歌的時長
+                    await loadSongDurations();
+                    
+                } else {
+                    throw new Error('播放清單為空或無法存取');
+                }
+                
+            } catch (error) {
+                console.error('載入播放清單失敗:', error);
+                document.getElementById('loadingStatus').textContent = '❌ 載入播放清單失敗，使用示例數據';
+                
+                // 使用示例數據
+                playlist = [
+                    { id: 'dQw4w9WgXcQ', title: 'Rick Astley - Never Gonna Give You Up', artist: 'Rick Astley', duration: 212 },
+                    { id: 'L_jWHffIx5E', title: 'Smash Mouth - All Star', artist: 'Smash Mouth', duration: 200 },
+                    { id: 'fJ9rUzIMcZQ', title: 'Queen - Bohemian Rhapsody', artist: 'Queen', duration: 355 }
+                ];
+                renderPlaylist();
+                document.getElementById('loadingStatus').textContent = '✅ 播放器已準備就緒！點擊歌曲開始播放';
+            }
+        }
+        
+        // 載入歌曲時長
+        async function loadSongDurations() {
+            try {
+                // 將影片ID分批處理（YouTube API一次最多50個）
+                const batchSize = 50;
+                const videoIds = playlist.map(song => song.id);
+                
+                for (let i = 0; i < videoIds.length; i += batchSize) {
+                    const batch = videoIds.slice(i, i + batchSize);
+                    const idsString = batch.join(',');
+                    
+                    const response = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id=${idsString}&key=${API_KEY}`);
+                    const data = await response.json();
+                    
+                    if (data.items) {
+                        data.items.forEach(video => {
+                            const playlistIndex = playlist.findIndex(song => song.id === video.id);
+                            if (playlistIndex !== -1) {
+                                const duration = parseYouTubeDuration(video.contentDetails.duration);
+                                playlist[playlistIndex].duration = duration;
+                            }
+                        });
+                    }
+                    
+                    // 更新進度顯示
+                    const processed = Math.min(i + batchSize, playlist.length);
+                    document.getElementById('loadingStatus').textContent = 
+                        `🔄 正在載入時長資訊... (${processed}/${playlist.length})`;
+                    
+                    // 即時更新播放清單顯示
+                    renderPlaylist();
+                    
+                    // 避免API請求過於頻繁
+                    if (i + batchSize < videoIds.length) {
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                    }
+                }
+                
+                document.getElementById('loadingStatus').textContent = '✅ 播放器已準備就緒！點擊歌曲開始播放';
+                console.log('所有歌曲時長載入完成');
+                
+            } catch (error) {
+                console.error('載入歌曲時長失敗:', error);
+                document.getElementById('loadingStatus').textContent = '⚠️ 時長載入失敗，但播放器可正常使用';
+            }
+        }
+        
+        // 解析YouTube時長格式 (PT4M13S -> 253秒)
+        function parseYouTubeDuration(duration) {
+            const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+            if (!match) return 0;
+            
+            const hours = parseInt(match[1]) || 0;
+            const minutes = parseInt(match[2]) || 0;
+            const seconds = parseInt(match[3]) || 0;
+            
+            return hours * 3600 + minutes * 60 + seconds;
+        }
+        
+        // 渲染播放清單
+        function renderPlaylist() {
+            playlistContainer.innerHTML = '';
+            playlist.forEach((song, index) => {
+                const card = document.createElement('div');
+                card.className = `song-card ${index === currentSongIndex ? 'active' : ''}`;
+                
+                let durationText;
+                if (song.duration > 0) {
+                    durationText = formatTime(song.duration);
+                } else {
+                    durationText = '<span style="color: rgba(0,0,0,0.4);">載入中...</span>';
+                }
+                
+                card.innerHTML = `
+                    <div class="card-title">🎵 ${song.title}</div>
+                    <div class="card-duration">👤 ${song.artist} • ⏱️ ${durationText}</div>
+                `;
+                card.addEventListener('click', () => playSong(index));
+                playlistContainer.appendChild(card);
+            });
+        }
+        
+        // 播放指定歌曲
+        function playSong(index) {
+            if (!playerReady) {
+                alert('播放器尚未準備就緒，請稍候再試');
+                return;
+            }
+            
+            console.log('播放歌曲:', playlist[index].title);
+            currentSongIndex = index;
+            currentTime = 0;
+            duration = 0;
+            
+            const videoId = playlist[index].id;
+            youtubePlayer.loadVideoById(videoId);
+            
+            updateCurrentSong();
+            renderPlaylist();
+        }
+        
+        // 更新當前歌曲顯示
+        function updateCurrentSong() {
+            if (currentSongIndex >= 0 && playlist[currentSongIndex]) {
+                const song = playlist[currentSongIndex];
+                currentSong.innerHTML = `<span class="active-indicator"></span>${song.title}`;
+                currentArtist.textContent = song.artist;
+                document.getElementById('screensaverSong').textContent = `🎵 ${song.title}`;
+            }
+        }
+        
+        // 播放/暫停切換
+        function togglePlay() {
+            if (!playerReady) {
+                alert('播放器尚未準備就緒');
+                return;
+            }
+            
+            if (currentSongIndex < 0) {
+                alert('請先選擇一首歌曲');
+                return;
+            }
+            
+            if (isPlaying) {
+                youtubePlayer.pauseVideo();
+            } else {
+                youtubePlayer.playVideo();
+            }
+        }
+        
+        // 進度條追蹤
+        function startProgressTracking() {
+            stopProgressTracking(); // 確保沒有重複的interval
+            progressInterval = setInterval(() => {
+                if (playerReady && youtubePlayer.getCurrentTime) {
+                    const newCurrentTime = Math.floor(youtubePlayer.getCurrentTime());
+                    const newDuration = Math.floor(youtubePlayer.getDuration());
+                    
+                    if (newCurrentTime !== currentTime || newDuration !== duration) {
+                        currentTime = newCurrentTime;
+                        if (newDuration > 0) {
+                            duration = newDuration;
+                        }
+                        updateProgress();
+                    }
+                    
+                    checkAutoPause();
+                }
+            }, 1000);
+        }
+        
+        function stopProgressTracking() {
+            if (progressInterval) {
+                clearInterval(progressInterval);
+                progressInterval = null;
+            }
+        }
+        
+        function updateProgress() {
+            const percentage = duration > 0 ? (currentTime / duration) * 100 : 0;
+            progress.style.width = percentage + '%';
+            currentTimeDisplay.textContent = formatTime(currentTime);
+            totalTimeDisplay.textContent = formatTime(duration);
+        }
+        
+        // 下一曲
+        function nextSong() {
+            if (playlist.length === 0) return;
+            
+            if (isRepeating && !isShuffled) {
+                // 單曲循環
+                if (playerReady && currentSongIndex >= 0) {
+                    youtubePlayer.seekTo(0);
+                    youtubePlayer.playVideo();
+                }
+                return;
+            }
+            
+            if (isShuffled) {
+                currentSongIndex = Math.floor(Math.random() * playlist.length);
+            } else {
+                currentSongIndex = (currentSongIndex + 1) % playlist.length;
+            }
+            
+            playSong(currentSongIndex);
+        }
+        
+        // 上一曲
+        function prevSong() {
+            if (playlist.length === 0) return;
+            
+            if (currentTime > 3 && currentSongIndex >= 0) {
+                if (playerReady) {
+                    youtubePlayer.seekTo(0);
+                }
+                return;
+            }
+            
+            currentSongIndex = currentSongIndex === 0 ? playlist.length - 1 : currentSongIndex - 1;
+            playSong(currentSongIndex);
+        }
+        
+        // 隨機播放切換
+        function toggleShuffle() {
+            isShuffled = !isShuffled;
+            shuffleBtn.style.background = isShuffled ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : '';
+            shuffleBtn.style.color = isShuffled ? 'white' : '';
+        }
+        
+        // 循環播放切換
+        function toggleRepeat() {
+            isRepeating = !isRepeating;
+            repeatBtn.style.background = isRepeating ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : '';
+            repeatBtn.style.color = isRepeating ? 'white' : '';
+        }
+        
+        // 音量控制
+        function updateVolume() {
+            volume = volumeSlider.value;
+            volumeDisplay.textContent = volume + '%';
+            if (playerReady) {
+                youtubePlayer.setVolume(volume);
+            }
+        }
+        
+        // 進度條點擊
+        function seekTo(event) {
+            if (!playerReady || duration <= 0 || currentSongIndex < 0) return;
+            
+            const rect = progressBar.getBoundingClientRect();
+            const percentage = (event.clientX - rect.left) / rect.width;
+            const seekTime = percentage * duration;
+            youtubePlayer.seekTo(seekTime);
+        }
+        
+        // 自動暫停檢查
+        function checkAutoPause() {
+            if (autoPauseTime && autoPauseStartTime && isPlaying) {
+                const now = Date.now();
+                const elapsed = Math.floor((now - autoPauseStartTime) / 1000);
+                
+                if (elapsed >= autoPauseTime) {
+                    if (playerReady) {
+                        youtubePlayer.pauseVideo();
+                    }
+                    autoPauseTime = null;
+                    autoPauseStartTime = null;
+                    clearInterval(pauseCountdownInterval);
+                    document.getElementById('pauseCountdown').textContent = '';
+                }
+            }
+        }
+        
+        // 更新暫停倒數顯示
+        function updatePauseCountdown() {
+            if (autoPauseTime && autoPauseStartTime && isPlaying) {
+                const now = Date.now();
+                const elapsed = Math.floor((now - autoPauseStartTime) / 1000);
+                const remaining = autoPauseTime - elapsed;
+                
+                if (remaining > 0) {
+                    const hours = Math.floor(remaining / 3600);
+                    const minutes = Math.floor((remaining % 3600) / 60);
+                    const seconds = remaining % 60;
+                    document.getElementById('pauseCountdown').textContent = 
+                        `⏰ 剩餘: ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                } else {
+                    document.getElementById('pauseCountdown').textContent = '';
+                }
+            } else {
+                document.getElementById('pauseCountdown').textContent = '';
+            }
+        }
+        
+        // 設定自動暫停
+        function setAutoPause() {
+            const hours = parseInt(document.getElementById('pauseHours').value) || 0;
+            const minutes = parseInt(document.getElementById('pauseMinutes').value) || 0;
+            const seconds = parseInt(document.getElementById('pauseSeconds').value) || 0;
+            
+            if (hours === 0 && minutes === 0 && seconds === 0) {
+                autoPauseTime = null;
+                autoPauseStartTime = null;
+                clearInterval(pauseCountdownInterval);
+                document.getElementById('pauseCountdown').textContent = '';
+                return;
+            }
+            
+            autoPauseTime = hours * 3600 + minutes * 60 + seconds;
+            
+            // 如果已經在播放狀態，立即開始倒數
+            if (isPlaying) {
+                autoPauseStartTime = Date.now();
+                clearInterval(pauseCountdownInterval);
+                pauseCountdownInterval = setInterval(updatePauseCountdown, 1000);
+                updatePauseCountdown();
+            } else {
+                autoPauseStartTime = null;
+                clearInterval(pauseCountdownInterval);
+                document.getElementById('pauseCountdown').textContent = 
+                    `⏰ 已設定: ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')} (按播放開始計時)`;
+            }
+        }
+        
+        // 時間格式化
+        function formatTime(seconds) {
+            if (isNaN(seconds) || seconds < 0) return '0:00';
+            
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            
+            if (hours > 0) {
+                return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            }
+            return `${minutes}:${secs.toString().padStart(2, '0')}`;
+        }
+        
+        // 更新時間顯示
+        function updateCurrentTime() {
+            const now = new Date();
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            const seconds = now.getSeconds().toString().padStart(2, '0');
+            const timeString = `${hours}:${minutes}:${seconds}`;
+            currentTimeEl.textContent = timeString;
+            
+            if (isScreensaver) {
+                document.getElementById('screensaverTime').textContent = timeString;
+            }
+        }
+        
+        // 待機模式
+        function resetIdleTimer() {
+            clearTimeout(idleTimer);
+            if (isScreensaver) {
+                hideScreensaver();
+            }
+            
+            idleTimer = setTimeout(() => {
+                showScreensaver();
+            }, 60000); // 1分鐘
+        }
+        
+        function showScreensaver() {
+            isScreensaver = true;
+            screensaver.style.display = 'flex';
+            updateCurrentTime();
+        }
+        
+        function hideScreensaver() {
+            isScreensaver = false;
+            screensaver.style.display = 'none';
+        }
+        
+        // 事件監聽器
+        playBtn.addEventListener('click', togglePlay);
+        prevBtn.addEventListener('click', prevSong);
+        nextBtn.addEventListener('click', nextSong);
+        shuffleBtn.addEventListener('click', toggleShuffle);
+        repeatBtn.addEventListener('click', toggleRepeat);
+        volumeSlider.addEventListener('input', updateVolume);
+        progressBar.addEventListener('click', seekTo);
+        document.getElementById('setPauseBtn').addEventListener('click', setAutoPause);
+        
+        // 滑鼠活動監聽
+        document.addEventListener('mousemove', resetIdleTimer);
+        document.addEventListener('keypress', resetIdleTimer);
+        document.addEventListener('click', resetIdleTimer);
+        
+        // 待機模式點擊退出
+        screensaver.addEventListener('click', hideScreensaver);
+        
+        // 初始化
+        setInterval(updateCurrentTime, 1000);
+        resetIdleTimer();
+        updateCurrentTime();
+        
+        // 頁面載入完成後的初始化
+        window.addEventListener('load', function() {
+            console.log('頁面載入完成');
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9653e862c2faa361',t:'MTc1MzUzMzAyMS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
