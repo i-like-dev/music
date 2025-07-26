@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-  <link rel="icon" href="favicon.ico" type="image/x-icon"/>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🎵 優雅音樂播放器</title>
@@ -307,9 +306,9 @@
             <div class="now-playing">
                 <div class="song-title" id="currentSong">
                     <span class="active-indicator"></span>
-                    選擇歌曲開始播放
+                    載入中...
                 </div>
-                <div class="song-artist" id="currentArtist">等待選擇</div>
+                <div class="song-artist" id="currentArtist">正在準備播放清單</div>
             </div>
 
             <div class="progress-container">
@@ -355,7 +354,7 @@
 
     <div class="screensaver" id="screensaver">
         <div class="screensaver-time" id="screensaverTime"></div>
-        <div class="screensaver-song" id="screensaverSong">🎵 目前播放中...</div>
+        <div class="screensaver-song" id="screensaverSong">🎵 音樂播放器待機中</div>
     </div>
 
     <!-- YouTube Player API -->
@@ -377,7 +376,7 @@
         let playlist = [];
         let currentTime = 0;
         let duration = 0;
-        let volume = 70;
+        let volume = 45;
         let autoPauseTime = null;
         let autoPauseStartTime = null;
         let pauseCountdownInterval = null;
@@ -429,6 +428,9 @@
                 playBtn.textContent = '⏸️';
                 startProgressTracking();
                 
+                // 更新待機畫面顯示
+                updateCurrentSong();
+                
                 // 獲取實際時長
                 const actualDuration = youtubePlayer.getDuration();
                 if (actualDuration > 0) {
@@ -449,6 +451,9 @@
                 isPlaying = false;
                 playBtn.textContent = '▶️';
                 stopProgressTracking();
+                
+                // 更新待機畫面顯示
+                updateCurrentSong();
             } else if (event.data == YT.PlayerState.BUFFERING) {
                 console.log('正在緩衝...');
             }
@@ -456,7 +461,15 @@
         
         function onPlayerError(event) {
             console.error('YouTube Player 錯誤:', event.data);
-            document.getElementById('loadingStatus').textContent = '❌ 播放器發生錯誤，請重新整理頁面';
+            // 不要因為單一影片錯誤就顯示整體錯誤訊息
+            console.log('嘗試播放下一首歌曲...');
+            
+            // 如果當前歌曲播放失敗，嘗試播放下一首
+            if (playlist.length > 1) {
+                setTimeout(() => {
+                    nextSong();
+                }, 1000);
+            }
         }
         
         // 待機模式
@@ -515,6 +528,13 @@
                     // 載入每首歌的時長
                     await loadSongDurations();
                     
+                    // 預設選擇第一首歌
+                    if (playlist.length > 0) {
+                        currentSongIndex = 0;
+                        updateCurrentSong();
+                        renderPlaylist();
+                    }
+                    
                 } else {
                     throw new Error('播放清單為空或無法存取');
                 }
@@ -529,6 +549,13 @@
                     { id: 'L_jWHffIx5E', title: 'Smash Mouth - All Star', artist: 'Smash Mouth', duration: 200 },
                     { id: 'fJ9rUzIMcZQ', title: 'Queen - Bohemian Rhapsody', artist: 'Queen', duration: 355 }
                 ];
+                
+                // 預設選擇第一首歌
+                if (playlist.length > 0) {
+                    currentSongIndex = 0;
+                    updateCurrentSong();
+                }
+                
                 renderPlaylist();
                 document.getElementById('loadingStatus').textContent = '✅ 播放器已準備就緒！點擊歌曲開始播放';
             }
@@ -641,26 +668,50 @@
                 const song = playlist[currentSongIndex];
                 currentSong.innerHTML = `<span class="active-indicator"></span>${song.title}`;
                 currentArtist.textContent = song.artist;
-                document.getElementById('screensaverSong').textContent = `🎵 ${song.title}`;
+                
+                // 只有在實際播放時才更新待機畫面
+                if (isPlaying) {
+                    document.getElementById('screensaverSong').textContent = `🎵 ${song.title}`;
+                } else {
+                    document.getElementById('screensaverSong').textContent = `🎵 已選擇: ${song.title}`;
+                }
             }
         }
         
         // 播放/暫停切換
         function togglePlay() {
             if (!playerReady) {
-                alert('播放器尚未準備就緒');
+                document.getElementById('loadingStatus').textContent = '⏳ 播放器尚未準備就緒，請稍候...';
                 return;
             }
             
             if (currentSongIndex < 0) {
-                alert('請先選擇一首歌曲');
+                // 如果沒有選擇歌曲，自動播放第一首
+                if (playlist.length > 0) {
+                    console.log('自動播放第一首歌曲');
+                    playSong(0);
+                } else {
+                    document.getElementById('loadingStatus').textContent = '⏳ 播放清單載入中，請稍候...';
+                }
                 return;
             }
             
-            if (isPlaying) {
-                youtubePlayer.pauseVideo();
-            } else {
-                youtubePlayer.playVideo();
+            try {
+                if (isPlaying) {
+                    youtubePlayer.pauseVideo();
+                } else {
+                    youtubePlayer.playVideo();
+                }
+            } catch (error) {
+                console.error('播放控制錯誤:', error);
+                document.getElementById('loadingStatus').textContent = '⚠️ 播放時發生問題，正在重試...';
+                
+                // 重試播放
+                setTimeout(() => {
+                    if (playlist.length > 0 && currentSongIndex >= 0) {
+                        playSong(currentSongIndex);
+                    }
+                }, 1000);
             }
         }
         
@@ -917,5 +968,5 @@
             console.log('頁面載入完成');
         });
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9653e862c2faa361',t:'MTc1MzUzMzAyMS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'96541c1d014f8421',t:'MTc1MzUzNTEzOS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
